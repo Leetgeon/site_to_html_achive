@@ -1,0 +1,50 @@
+import requests
+from bs4 import BeautifulSoup
+import re
+
+def fetch_page_content(url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.text
+    else:
+        return None
+
+def generate_html_documents(links_list):
+    html_template = '''
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Extracted Links</title>
+    </head>
+    <body>
+        <h1>Extracted Links</h1>
+        {content}
+    </body>
+    </html>
+    '''
+
+    for link_pair in links_list:
+        link, link_name = map(str.strip, link_pair)
+        # Remove invalid characters from link_name to create a valid file name
+        file_name = re.sub(r'[\\/:"*?<>|]+', '', link_name)[:50] + '.html'
+        page_content = fetch_page_content(link)
+        if page_content:
+            soup = BeautifulSoup(page_content, 'html.parser')
+            content = str(soup.body)
+        else:
+            content = f'<p>Failed to fetch the content of the page: {link}</p>'
+
+        html_content = html_template.format(content=content)
+
+        with open(file_name, 'w', encoding='utf-8') as file:
+            file.write(html_content)
+
+        print(f"HTML document {file_name} generated successfully!")
+
+
+if __name__ == '__main__':
+    links = input("Enter the links in the format '[link_1,link_name_1],[link_2,link_name_2],...,[link_i,link_name_i]': ")
+    links_list = eval(links)  # Remove the eval() function
+    generate_html_documents(links_list)
